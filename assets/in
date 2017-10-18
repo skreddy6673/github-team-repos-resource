@@ -1,0 +1,36 @@
+#!/bin/bash
+
+output_json=""
+input_json="$(cat)"
+
+{
+    # parse out the input params
+    auth_token=$(echo "${input_json}" | jq .source.auth_token -r)
+    version=$(echo "${input_json}" | jq '.version.ref' -r | base64 -d)
+
+    # iterate over all the repos and clone/pull a specific sha1
+    while read -r name repo sha1; do
+
+        repo_dir="$1/$name"
+        if [[ -d $repo_dir ]]; then
+            # #######################################################################
+            # TODO: the auth_token might have changed and we need to use the one
+            # supplied in the input instead of the one we used in the last run
+            # #######################################################################
+            echo; echo "Pulling: ${repo}"
+            (cd $repo_dir; git pull; git reset --hard $sha1)
+        else
+            echo; echo "Cloning: ${repo}"
+            mkdir -p $repo_dir
+            repo_with_auth_token="https://${auth_token}@${repo:8}"
+            git clone $repo_with_auth_token $repo_dir
+            (cd $repo_dir; git reset --hard $sha1)
+        fi
+
+    done < <(echo "${version}" | jq '.versions|to_entries|.[]|(.key +" "+.value.repo+" "+.value.sha1)' -r)
+
+} 1>&2 2>/tmp/in.debug
+
+
+# create the output
+echo "${input_json}" | jq '{ version:.version, metadata:[] }' -c

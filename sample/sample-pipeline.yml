@@ -1,0 +1,38 @@
+resource_types:
+- name: github-team-repos
+  type: docker-image
+  source:
+    repository: maliksalman/github-team-repos-resource
+    tag: "1.0"
+
+resources:
+- name: my-team-repos
+  type: github-team-repos
+  source:
+    auth_token: {{GITHUB_AUTH_TOKEN}}
+    org: deploymentio
+    team: sample
+    repos_excluded:
+    - deploymentio/ec2-namer-lambda
+
+jobs:
+- name: get-and-count
+  plan:
+  - get: my-team-repos
+    trigger: true
+  - task: build
+    config:
+      platform: linux
+      image_resource:
+        type: docker-image
+        source:
+          repository: alpine
+      run:
+        path: "sh"
+        args:
+        - -exc
+        - |
+          pwd
+          find .
+      inputs:
+      - name: my-team-repos

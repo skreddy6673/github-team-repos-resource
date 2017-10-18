@@ -1,0 +1,61 @@
+#!/bin/bash -x
+
+output_json=""
+input_json="$(cat)"
+
+{
+    # parse out the input params
+    auth_token=$(echo "${input_json}" | jq .source.auth_token -r)
+    org=$(echo "${input_json}" | jq .source.org -r)
+    team=$(echo "${input_json}" | jq .source.team -r)
+    repos_excluded=$(echo "${input_json}" | jq '.source.repos_excluded // empty')
+
+    # iterate through all team's repos
+    repos_url=$(curl -H "Authorization: token $auth_token" -s "https://api.github.com/orgs/${org}/teams" | jq ".[] | select(.name == \"${team}\") | .repositories_url" -r)
+    curl -H "Authorization: token $auth_token" -s "${repos_url}?per_page=100" | jq '.[] | (.clone_url + " " + .full_name)' -r > /tmp/repos.list
+    while read -r repo name; do
+
+        # skip over the excluded repos here
+        if [[ ! -z "${repos_excluded}" && $(echo "${repos_excluded}" | jq "index(\"${name}\") // -1") -ge 0 ]]; then
+            echo "Skipping Excluded: ${repo}"
+            continue
+        fi
+
+        repo_dir="repos/$name"
+        if [[ -d $repo_dir ]]; then
+            # #######################################################################
+            # TODO: the auth_token might have changed and we need to use the one
+            # supplied in the input instead of the one we used in the last run
+            # #######################################################################
+            echo; echo "Pulling: ${repo}"
+            (cd $repo_dir; git pull)
+        else
+            echo; echo "Cloning: ${repo}"
+            mkdir -p $repo_dir
+            repo_with_auth_token="https://${auth_token}@${repo:8}"
+            git clone $repo_with_auth_token $repo_dir
+        fi
+
+        # record the HEAD version for the repo
+        sha1=$(cd $repo_dir; git rev-parse HEAD)
+        output_json="${output_json}\"${name}\":{\"repo\":\"${repo}\",\"sha1\":\"${sha1}\"},"
+
+    done < /tmp/repos.list
+
+    # remove the trailing ',' if there is any
+    if [[ "${output_json}" != "" ]]; then
+        output_json="${output_json::-1}"
+    fi
+
+    # #######################################################################
+    # TODO: remove the repos/* dirs that no longer belong to the team
+    # this is not really necessary for a lid output but good for housekeeping
+    # #######################################################################
+
+    digest=$(echo "{\"repos\":\"${repos_url}\", \"versions\":{ ${output_json}}}" | jq . -S -c | base64 | tr -d '\n')
+
+} 1>&2 2>/tmp/check.debug
+
+
+# construct the final output
+echo "[{\"ref\":\"${digest}\"}]"
