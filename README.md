@@ -11,7 +11,7 @@ resource_types:
 - name: github-team-repos
   type: docker-image
   source:
-    repository: maliksalman/github-team-repos-resource
+    repository: pivotalservices/github-team-repos-resource
     tag: "1.0"
 ```
 
