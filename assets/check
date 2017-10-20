@@ -52,7 +52,7 @@ input_json="$(cat)"
     # this is not really necessary for a lid output but good for housekeeping
     # #######################################################################
 
-    digest=$(echo "{\"repos\":\"${repos_url}\", \"versions\":{ ${output_json}}}" | jq . -S -c | base64 | tr -d '\n')
+    digest=$(echo "{\"repos\":\"${repos_url}\", \"versions\":{ ${output_json}}}" | jq . -S -c | base64 | tr -d '\n' | md5sum )
 
 } 1>&2 2>/tmp/check.debug
 
