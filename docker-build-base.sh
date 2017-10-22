@@ -1,3 +1,3 @@
 #!/bin/bash
 
-docker build . --tag pivotalservices/github-team-repos-resource:1.0
+docker build . --tag pivotalservices/github-team-repos-resource:1.1

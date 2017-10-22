@@ -6,28 +6,40 @@ input_json="$(cat)"
 {
     # parse out the input params
     auth_token=$(echo "${input_json}" | jq .source.auth_token -r)
-    version=$(echo "${input_json}" | jq '.version.ref' -r | base64 -d)
+    version=$(echo "${input_json}" | jq '.version.ref' -r )
+    org=$(echo "${input_json}" | jq .source.org -r)
+    team=$(echo "${input_json}" | jq .source.team -r)
+    repos_excluded=$(echo "${input_json}" | jq '.source.repos_excluded // empty')
 
-    # iterate over all the repos and clone/pull a specific sha1
-    while read -r name repo sha1; do
+    # iterate through all team's repos
+    repos_url=$(curl -H "Authorization: token $auth_token" -s "https://api.github.com/orgs/${org}/teams" | jq ".[] | select(.name == \"${team}\") | .repositories_url" -r)
+    curl -H "Authorization: token $auth_token" -s "${repos_url}?per_page=100" | jq '.[] | (.clone_url + " " + .full_name)' -r > /tmp/repos.list
+    while read -r repo name; do
 
-        repo_dir="$1/$name"
+        # skip over the excluded repos here
+        if [[ ! -z "${repos_excluded}" && $(echo "${repos_excluded}" | jq "index(\"${name}\") // -1") -ge 0 ]]; then
+            echo "Skipping Excluded: ${repo}"
+            continue
+        fi
+
+        repo_dir="repos/$name"
         if [[ -d $repo_dir ]]; then
             # #######################################################################
             # TODO: the auth_token might have changed and we need to use the one
             # supplied in the input instead of the one we used in the last run
             # #######################################################################
             echo; echo "Pulling: ${repo}"
-            (cd $repo_dir; git pull; git reset --hard $sha1)
+            (cd $repo_dir; git pull; git reset --hard )
         else
             echo; echo "Cloning: ${repo}"
             mkdir -p $repo_dir
             repo_with_auth_token="https://${auth_token}@${repo:8}"
             git clone $repo_with_auth_token $repo_dir
-            (cd $repo_dir; git reset --hard $sha1)
+            (cd $repo_dir; git reset --hard )
         fi
 
-    done < <(echo "${version}" | jq '.versions|to_entries|.[]|(.key +" "+.value.repo+" "+.value.sha1)' -r)
+
+    done < /tmp/repos.list
 
 } 1>&2 2>/tmp/in.debug
 

@@ -21,23 +21,12 @@ input_json="$(cat)"
             continue
         fi
 
-        repo_dir="repos/$name"
-        if [[ -d $repo_dir ]]; then
-            # #######################################################################
-            # TODO: the auth_token might have changed and we need to use the one
-            # supplied in the input instead of the one we used in the last run
-            # #######################################################################
-            echo; echo "Pulling: ${repo}"
-            (cd $repo_dir; git pull)
-        else
-            echo; echo "Cloning: ${repo}"
-            mkdir -p $repo_dir
-            repo_with_auth_token="https://${auth_token}@${repo:8}"
-            git clone $repo_with_auth_token $repo_dir
-        fi
+        echo "Getting SHA1 of the repo: ${repo}"
+        repo_with_auth_token="https://${auth_token}@${repo:8}"
+
 
         # record the HEAD version for the repo
-        sha1=$(cd $repo_dir; git rev-parse HEAD)
+        sha1=$(git ls-remote $repo_with_auth_token HEAD | head -1 | cut -f 1)
         output_json="${output_json}\"${name}\":{\"repo\":\"${repo}\",\"sha1\":\"${sha1}\"},"
 
     done < /tmp/repos.list
@@ -52,7 +41,7 @@ input_json="$(cat)"
     # this is not really necessary for a lid output but good for housekeeping
     # #######################################################################
 
-    digest=$(echo "{\"repos\":\"${repos_url}\", \"versions\":{ ${output_json}}}" | jq . -S -c | base64 | tr -d '\n')
+    digest=$(echo "{\"repos\":\"${repos_url}\", \"versions\":{ ${output_json}}}" | jq . -S -c | base64 | tr -d '\n' | md5sum )
 
 } 1>&2 2>/tmp/check.debug
 
