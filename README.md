@@ -12,7 +12,7 @@ resource_types:
   type: docker-image
   source:
     repository: pivotalservices/github-team-repos-resource
-    tag: "1.0"
+    tag: "1.1"
 ```
 
 ## Resource Configuration
