@@ -22,7 +22,7 @@ input_json="$(cat)"
             continue
         fi
 
-        repo_dir="repos/$name"
+        repo_dir="/tmp/build/get/repos/$name"
         if [[ -d $repo_dir ]]; then
             # #######################################################################
             # TODO: the auth_token might have changed and we need to use the one
@@ -31,7 +31,7 @@ input_json="$(cat)"
             echo; echo "Pulling: ${repo}"
             (cd $repo_dir; git pull; git reset --hard )
         else
-            echo; echo "Cloning: ${repo}"
+            echo; echo "Cloning: ${repo} to $repo_dir"
             mkdir -p $repo_dir
             repo_with_auth_token="https://${auth_token}@${repo:8}"
             git clone $repo_with_auth_token $repo_dir
