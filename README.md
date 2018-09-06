@@ -12,12 +12,12 @@ resource_types:
   type: docker-image
   source:
     repository: pivotalservices/github-team-repos-resource
-    tag: "1.1"
+    tag: "1.2"
 ```
 
 ## Resource Configuration
 
-The following parameters are involved when configuring such a resource. 
+The following parameters are involved when configuring such a resource.
 
 * `org`: *Required.* The GitHub organization. If your team's repositories page is located at `https://github.com/orgs/pivotalservices/teams/app-0/repositories` then the org value to use is `pivotalservices`
 
@@ -49,7 +49,7 @@ resources:
 ### `check`: Check for new commits.
 
 All repositories belonging to GitHub team are cloned (or pulled if already present), and refs
-for `HEAD` are returned for each repository. Since concourse can only deal with version information as a single string value, and we need to return refs for multiple repos, the information is formatted as a JSON string and passed through `base64` to get a single value 
+for `HEAD` are returned for each repository. Since concourse can only deal with version information as a single string value, and we need to return refs for multiple repos, the information is formatted as a JSON string and passed through `base64` to get a single value
 
 ### `in`: Clone the repositories, at the given refs.
 
