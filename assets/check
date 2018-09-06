@@ -11,7 +11,8 @@ input_json="$(cat)"
     repos_excluded=$(echo "${input_json}" | jq '.source.repos_excluded // empty')
 
     # iterate through all team's repos
-    repos_url=$(curl -H "Authorization: token $auth_token" -s "https://api.github.com/orgs/${org}/teams" | jq ".[] | select(.name == \"${team}\") | .repositories_url" -r)
+    repos_url=$(curl -H "Authorization: token $auth_token" -s "https://api.github.com/orgs/${org}/teams?per_page=100" | jq ".[] | select(.name == \"${team}\") | .repositories_url" -r)
+    echo "Repos URL : $repos_url"
     curl -H "Authorization: token $auth_token" -s "${repos_url}?per_page=100" | jq '.[] | (.clone_url + " " + .full_name)' -r > /tmp/repos.list
     while read -r repo name; do
 
